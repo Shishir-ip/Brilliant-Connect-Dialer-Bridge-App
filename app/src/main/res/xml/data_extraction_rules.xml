@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Backups are disabled app-wide (android:allowBackup=false). -->
+    </cloud-backup>
+    <device-transfer>
+        <!-- No data transfer rules: settings are device-local by design. -->
+    </device-transfer>
+</data-extraction-rules>
