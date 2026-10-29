@@ -79,12 +79,26 @@ class BridgeViewModel(application: Application) : AndroidViewModel(application) 
                 _showPaidWarningDialog.value = true
             }
         }
+        // Any settings change can flip the connection path (e.g. enabling
+        // "Route all outgoing calls" satisfies setup without a calling account).
+        viewModelScope.launch {
+            repository.settingsFlow.collect { latest ->
+                recomputeSetupStatus(latest)
+            }
+        }
+    }
+
+    /** Permission/device-derived status combined with the given settings snapshot. */
+    private fun recomputeSetupStatus(currentSettings: BridgeSettings) {
+        _setupStatus.value = PermissionHelper.getFullSetupStatus(
+            context = context,
+            targetPackage = currentSettings.targetPackageName,
+            routeAllOutgoingCalls = currentSettings.routeAllOutgoingCalls,
+            redirectionRoleHeld = _redirectionRoleHeld.value
+        )
     }
 
     fun refreshStatus() {
-        val currentTargetPkg = settings.value.targetPackageName
-        _setupStatus.value = PermissionHelper.getFullSetupStatus(context, currentTargetPkg)
-
         _redirectionRoleHeld.value = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
                 val rm = context.getSystemService(android.app.role.RoleManager::class.java)
@@ -93,8 +107,12 @@ class BridgeViewModel(application: Application) : AndroidViewModel(application) 
                 false
             }
         } else {
-            true
+            // CallRedirectionService only exists on Android 10+; never satisfy
+            // the redirection path on older APIs.
+            false
         }
+
+        recomputeSetupStatus(settings.value)
 
         val tm = context.getSystemService(Context.TELECOM_SERVICE) as? TelecomManager ?: return
         try {
@@ -122,6 +140,12 @@ class BridgeViewModel(application: Application) : AndroidViewModel(application) 
     fun updateHandoffStrategy(strategy: String) = viewModelScope.launch { repository.setHandoffStrategy(strategy) }
     fun updateRouteAllCalls(enabled: Boolean) = viewModelScope.launch { repository.setRouteAllOutgoingCalls(enabled) }
     fun updateStartOnBoot(enabled: Boolean) = viewModelScope.launch { repository.setStartOnBoot(enabled) }
+
+    /** One-tap switch to the redirection path used on OEMs that hide calling accounts. */
+    fun enableRedirectionRoute() = updateRouteAllCalls(true)
+
+    val deviceManufacturer: String =
+        Build.MANUFACTURER.replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() }
 
     fun dismissPaidWarning() = viewModelScope.launch {
         repository.setHasSeenPaidCallWarning(true)

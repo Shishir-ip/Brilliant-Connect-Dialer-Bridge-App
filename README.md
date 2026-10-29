@@ -73,7 +73,7 @@ The app walks you through everything with a one-tap **Fix** button for each step
 | **Battery optimization** | Keep the bridge alive in the background |
 | **Brilliant Connect installed** | The VoIP app that actually places the call |
 | **Accessibility service** | Auto-selects **Brilliant-OUT** inside Brilliant Connect |
-| **Calling account enabled** | Registers "Brilliant Connect" as a calling account |
+| **Calling account enabled** | Registers "Brilliant Connect" as a calling account — on Oppo/Realme/OnePlus, use the **Use call redirection** option in this step instead |
 
 ## 🧠 How it works
 
@@ -150,6 +150,11 @@ keytool -genkeypair -v -keystore release.keystore -alias yourAlias \
 ```
 
 ## ❓ FAQ
+
+<details>
+<summary><b>Oppo / Realme / OnePlus: "Brilliant Connect" doesn't appear under calling accounts?</b></summary>
+ColorOS often hides third-party calling accounts entirely, so there is nothing to toggle. Use the built-in **call redirection** route instead: in <b>Setup</b>, tap <b>Fix</b> on the last step → <b>“Use call redirection”</b> → accept the system prompt, and turn on <b>Route all outgoing calls</b> in Settings. This routes every dialer call through the bridge <i>without</i> needing a calling account. Also enable <b>Auto-start</b> for the bridge in ColorOS app info so it survives reboots.
+</details>
 
 <details>
 <summary><b>Does this cost extra money?</b></summary>

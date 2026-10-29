@@ -21,8 +21,23 @@ data class SetupStatus(
     val batteryOptimizationIgnored: Boolean,
     val targetAppInstalled: Boolean,
     val accessibilityServiceEnabled: Boolean,
-    val callingAccountEnabled: Boolean
+    val callingAccountEnabled: Boolean,
+    val routeAllOutgoingCalls: Boolean = false,
+    val redirectionRoleHeld: Boolean = false
 ) {
+    /**
+     * Many OEM dialers (Oppo/Realme/OnePlus ColorOS, some Xiaomi builds) hide
+     * third-party calling accounts entirely, making the account toggle
+     * impossible. The call-redirection path ("Route all outgoing calls" +
+     * default redirection app) works without a calling account, so the setup
+     * passes when either path is available.
+     */
+    val redirectionPathActive: Boolean
+        get() = routeAllOutgoingCalls && redirectionRoleHeld
+
+    val connectionStepDone: Boolean
+        get() = callingAccountEnabled || redirectionPathActive
+
     val allReady: Boolean
         get() = phonePermissionsGranted &&
             notificationPermissionGranted &&
@@ -31,7 +46,7 @@ data class SetupStatus(
             batteryOptimizationIgnored &&
             targetAppInstalled &&
             accessibilityServiceEnabled &&
-            callingAccountEnabled
+            connectionStepDone
 
     val remainingCount: Int
         get() = listOf(
@@ -42,7 +57,7 @@ data class SetupStatus(
             batteryOptimizationIgnored,
             targetAppInstalled,
             accessibilityServiceEnabled,
-            callingAccountEnabled
+            connectionStepDone
         ).count { !it }
 }
 
@@ -104,7 +119,12 @@ object PermissionHelper {
             (enabledServices.contains(expectedComponent) || enabledServices.contains(expectedShort))
     }
 
-    fun getFullSetupStatus(context: Context, targetPackage: String): SetupStatus = SetupStatus(
+    fun getFullSetupStatus(
+        context: Context,
+        targetPackage: String,
+        routeAllOutgoingCalls: Boolean = false,
+        redirectionRoleHeld: Boolean = false
+    ): SetupStatus = SetupStatus(
         phonePermissionsGranted = hasPhonePermissions(context),
         notificationPermissionGranted = hasNotificationPermission(context),
         overlayPermissionGranted = hasOverlayPermission(context),
@@ -112,6 +132,8 @@ object PermissionHelper {
         batteryOptimizationIgnored = isIgnoringBatteryOptimizations(context),
         targetAppInstalled = HandoffLauncher.isTargetInstalled(context, targetPackage),
         accessibilityServiceEnabled = isAccessibilityServiceEnabled(context),
-        callingAccountEnabled = BridgePhoneAccountManager.isAccountEnabled(context)
+        callingAccountEnabled = BridgePhoneAccountManager.isAccountEnabled(context),
+        routeAllOutgoingCalls = routeAllOutgoingCalls,
+        redirectionRoleHeld = redirectionRoleHeld
     )
 }
